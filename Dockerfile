@@ -3,8 +3,8 @@ FROM resin/rpi-raspbian:jessie
 MAINTAINER Eugene Bagdasaryan <ebagdasa@cs.cornell.edu>
 
 RUN apt-get update && \
-apt-get install -y postgresql postgresql-contrib
+apt-get install -y vim
 
 
-ENTRYPOINT postgres
+
 
