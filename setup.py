@@ -6,7 +6,7 @@ setup(
     packages=['tinycloud',],
     license='MIT License',
     long_description=open('README.md').read(),
-    scripts=['bin/tiny-manager', 'bin/tiny-apps'],
+    scripts=['bin/tiny-add-node', 'bin/tiny-add-app', 'bin/tiny-delete-app', 'bin/tiny-delete-node'],
     classifiers=[
     'Development Status :: 3 - Alpha',
     'Intended Audience :: Developers',
