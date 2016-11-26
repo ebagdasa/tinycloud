@@ -6,7 +6,11 @@ setup(
     packages=['tinycloud',],
     license='MIT License',
     long_description=open('README.md').read(),
-    scripts=['bin/tiny-add-node', 'bin/tiny-add-app', 'bin/tiny-delete-app', 'bin/tiny-delete-node'],
+    scripts=['bin/tiny-add-node', 'bin/tiny-add-app', 'bin/tiny-delete-app', 'bin/tiny-delete-node', 'bin/tiny-add-flow'],
+    install_requires=[
+        'ansible',
+        'redis'
+      ],
     classifiers=[
     'Development Status :: 3 - Alpha',
     'Intended Audience :: Developers',
