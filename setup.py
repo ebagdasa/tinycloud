@@ -9,7 +9,8 @@ setup(
     scripts=['bin/tiny-add-node', 'bin/tiny-add-app', 'bin/tiny-delete-app', 'bin/tiny-delete-node', 'bin/tiny-add-flow'],
     install_requires=[
         'ansible',
-        'redis'
+        'redis',
+        'networkx'
       ],
     classifiers=[
     'Development Status :: 3 - Alpha',
