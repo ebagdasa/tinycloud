@@ -1,19 +1,27 @@
 #!/usr/bin/env python
+from tinycloud.env import ConnectionManager
 
 
 
 def parse_args():
     import argparse
 
-    parser = argparse.ArgumentParser(description='OpenStack Inventory Module')
-    parser.add_argument('--action', action='store', help='Choose action')
-    # parser.add_argument('')
+    parser = argparse.ArgumentParser(description='Add application to ')
+    parser.add_argument('-n', '--name', required=True)
+    parser.add_argument('-t', '--type', choices=['sensor', 'actuator', 'service'], required=True, help='Type of application')
+    parser.add_argument('--data', choices=['private', 'public'], default='private')
+    parser.add_argument('-m', help='memory', required=False)
+    parser.add_argument('--node', required=False)
 
+
+    #
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
+    conn = ConnectionManager()
+    conn.add_node(name=args.name, type=args.type, data=args.data)
 
     output = 'Nothing to return'
     print(args)
