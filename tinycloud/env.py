@@ -15,7 +15,7 @@ class ConnectionManager:
         self.__node__ = None
         self.__port__ = None
         self.conn = None
-        self.graph = nx.DiGraph()
+        self.graph = nx.Graph()
         self.flows = dict()
         self.set_connection()
 
@@ -42,6 +42,8 @@ class ConnectionManager:
         result = self.conn.get(name)
         graph = json_graph.adjacency_graph(json.loads(result))
         print graph.edges()
+        if name == 'main':
+            self.graph = graph
         return graph
 
     def merge_graphs(self, graph):
@@ -57,14 +59,14 @@ class ConnectionManager:
         self.save_graph('main', self.graph)
 
     def add_flow(self, name, input_flow):
-        new_flow = [[y[0:3] for y in x] for x in input_flow]
+        new_flow = [[y[0:2] for y in x] for x in input_flow]
         for flow in input_flow:
             for app in flow:
-                if not self.graph.has_node(app[0:3]):
+                if not self.graph.has_node(app[0:2]):
                     raise Exception('Please define application {0} first.'.format(app))
-                elif self.graph.node[app[0:3]]['full_name'] != app:
+                elif self.graph.node[app[0:2]]['full_name'] != app:
                     raise Exception('Names of app abbreviations {0} and '
-                                    '{1} don\'t match.'.format(self.graph.node[app[0:3]]['full_name'], app))
+                                    '{1} don\'t match.'.format(self.graph.node[app[0:2]]['full_name'], app))
         flow = nx.DiGraph()
         for path in new_flow:
             flow.add_path(path, weight=1)
@@ -79,27 +81,39 @@ class ConnectionManager:
         self.merge_graphs(flow)
 
     def add_node(self, name, app_type, data, impl='virtual'):
-        self.graph.add_node(name[0:3], full_name=name, type=app_type, data=data, impl=impl, node_shape=type_shape[app_type], node_color=data_color[data])
+        self.graph.add_node(name[0:2], full_name=name, type=app_type, data=data, impl=impl,
+                            node_shape=type_shape[app_type], node_color=data_color[data])
         print 'Added new node: {0}'.format(name)
         self.save_graph('main', self.graph)
 
-    def draw_graph(self, name):
-        graph = self.get_graph(name)
+    def draw_graph(self, name=None, graph=None):
+        if name:
+            graph = self.get_graph(name)
         labels = nx.get_edge_attributes(graph, 'weight')
         plt.clf()
-        pos=nx.circular_layout(graph)
+        pos = {}
+        area = 4
+        pos_set = [[] for i in range(area)]
+        clusters = self.eigens(area)
+        for i in range(0, len(self.graph.nodes())):
+            pos_set[clusters[i]].append(self.graph.nodes()[i])
+
+        pos.update(nx.circular_layout(pos_set[0], center=[-10,-10]))
+        pos.update(nx.circular_layout(pos_set[1], center=[-10,10]))
+        pos.update(nx.circular_layout(pos_set[2], center=[10,-10]))
+        pos.update(nx.circular_layout(pos_set[3], center=[10, 10]))
 
         nodes = self.get_node_list(graph)
 
         nx.draw_networkx_nodes(graph, pos, nodelist=nodes['sensor']['name'],
-                               node_color=nodes['sensor']['color'], node_shape='s', node_size=700, with_labels=True)
-        nx.draw_networkx_nodes(graph,pos,nodelist=nodes['service']['name'], node_size=700, node_color=nodes['service']['color'], node_shape='o', with_labels=True)
-        nx.draw_networkx_nodes(graph,pos,nodelist=nodes['actuator']['name'], node_size=700, node_color=nodes['actuator']['color'], node_shape='p', with_labels=True)
+                               node_color=nodes['sensor']['color'], node_shape='s', node_size=1000, with_labels=True)
+        nx.draw_networkx_nodes(graph, pos, nodelist=nodes['service']['name'], node_size=1000,
+                               node_color=nodes['service']['color'], node_shape='o', with_labels=True)
+        nx.draw_networkx_nodes(graph, pos, nodelist=nodes['actuator']['name'], node_size=1000,
+                               node_color=nodes['actuator']['color'], node_shape='p', with_labels=True)
 
         nx.draw_networkx_edges(graph, pos)
-
         nx.draw_networkx_labels(graph, pos, font_size=16)
-
         nx.draw_networkx_edge_labels(graph, pos=pos, edge_labels=labels)
 
     @staticmethod
@@ -110,17 +124,17 @@ class ConnectionManager:
                  'actuator': {'name':[], 'color':[]},
                  'service':{'name':[], 'color':[]}}
         for name, type in types.iteritems():
-            nodes[type]['name'].append(name)
-            nodes[type]['color'].append(data_color[data[name]])
+            if nx.degree(graph, name) > 0:
+                nodes[type]['name'].append(name)
+                nodes[type]['color'].append(data_color[data[name]])
         return nodes
 
     def clear_graph(self, name):
         self.conn.delete(name)
 
-    def test_fill(self):
+    def test_fill(self, n):
         import random
 
-        n = 10
         types = ['service', 'sensor', 'actuator']
         data=['private', 'public']
         impls = ['physical', 'virtual']
@@ -134,12 +148,12 @@ class ConnectionManager:
                 impl = random.choice(impls)
             else:
                 impl = 'physical'
-            self.add_node(name=str(i).zfill(3), app_type=type, data=data_i, impl=impl)
+            self.add_node(name=str(i).zfill(2), app_type=type, data=data_i, impl=impl)
 
-        for i in range(0, 10):
+        for i in range(0, 2*n):
             flow = list()
             remaining_nodes = self.graph.nodes()
-            length = random.randint(2, 10)
+            length = random.randint(2, 2*n)
             print "length {0}".format(length)
             for j in range(0, length):
                 if j==0:
@@ -159,7 +173,15 @@ class ConnectionManager:
                     print flow
                     print j
                     if self.graph.node[flow[j-1]]['type']=='sensor':
-                        available_nodes = remaining_nodes
+                        services = self.get_nodes_by_type(self.graph, 'type', 'service', remaining_nodes)
+                        public = self.get_nodes_by_type(self.graph, 'data', 'private', remaining_nodes)
+                        if self.graph.node[flow[j-1]]['data']=='private':
+                            for pub in public:
+                                if pub in services:
+                                    services.remove(pub)
+                        available_nodes = services + self.get_nodes_by_type(self.graph, 'type', 'sensor',
+                                                                            remaining_nodes)
+
                     else:
                         available_nodes = self.get_nodes_by_type(self.graph, 'type', 'service', remaining_nodes)
                     if not available_nodes:
@@ -170,7 +192,10 @@ class ConnectionManager:
                 # if self.graph.node[node]['impl']=='physical':
                 #     break
             self.add_flow(i, [flow])
-
+        for node in self.graph.nodes():
+            if nx.degree(self.graph, node) == 0:
+                self.graph.remove_node(node)
+                print 'removed unconnected node' + node
 
     @staticmethod
     def get_nodes_by_type(graph, attr_name, app_type, nodes):
@@ -179,6 +204,19 @@ class ConnectionManager:
             if value == app_type and node in nodes:
                 list_nodes.append(node)
         return list_nodes
+
+    def eigens(self, k):
+
+        import scipy.sparse.linalg as linalg
+        import scipy.cluster.vq as vq
+        matrix = nx.normalized_laplacian_matrix(self.graph)
+        eig_res = linalg.eigsh(matrix, k)
+        result = vq.kmeans2(vq.whiten(eig_res[1]), k)[1]
+        return result
+
+
+
+
 
 
 

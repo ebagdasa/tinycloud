@@ -10,7 +10,8 @@ setup(
     install_requires=[
         'ansible',
         'redis',
-        'networkx'
+        'networkx',
+        'scipy'
       ],
     classifiers=[
     'Development Status :: 3 - Alpha',
