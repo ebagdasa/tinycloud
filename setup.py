@@ -11,7 +11,8 @@ setup(
         'ansible',
         'redis',
         'networkx',
-        'scipy'
+        'scipy',
+        'docker-py'
       ],
     classifiers=[
     'Development Status :: 3 - Alpha',
