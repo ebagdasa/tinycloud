@@ -21,7 +21,7 @@ def parse_args():
 def main():
     args = parse_args()
     conn = ConnectionManager()
-    conn.add_node(name=args.name, type=args.type, data=args.data)
+    conn.add_node(name=args.name, app_type=args.type, data=args.data)
 
     output = 'Nothing to return'
     print(args)

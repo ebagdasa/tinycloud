@@ -92,24 +92,31 @@ class ConnectionManager:
         labels = nx.get_edge_attributes(graph, 'weight')
         plt.clf()
         pos = {}
-        area = 4
+        area = 9
         pos_set = [[] for i in range(area)]
         clusters = self.eigens(area)
         for i in range(0, len(self.graph.nodes())):
             pos_set[clusters[i]].append(self.graph.nodes()[i])
 
-        pos.update(nx.circular_layout(pos_set[0], center=[-10,-10]))
-        pos.update(nx.circular_layout(pos_set[1], center=[-10,10]))
-        pos.update(nx.circular_layout(pos_set[2], center=[10,-10]))
-        pos.update(nx.circular_layout(pos_set[3], center=[10, 10]))
+        pos.update(nx.circular_layout(pos_set[0], scale=5, center=[-20, -20]))
+        pos.update(nx.circular_layout(pos_set[1], scale=5, center=[-20,  20]))
+        pos.update(nx.circular_layout(pos_set[2], scale=5, center=[ 20,  20]))
+        pos.update(nx.circular_layout(pos_set[3], scale=5, center=[ 20, -20]))
+        pos.update(nx.circular_layout(pos_set[4], scale=5, center=[ 0,  20]))
+        pos.update(nx.circular_layout(pos_set[5], scale=5, center=[ 0, 0]))
+        pos.update(nx.circular_layout(pos_set[6], scale=5, center=[ -20, 0]))
+        pos.update(nx.circular_layout(pos_set[7], scale=5, center=[ 20, 0]))
+        pos.update(nx.circular_layout(pos_set[8], scale=5, center=[ 0, -20]))
+
+
 
         nodes = self.get_node_list(graph)
 
         nx.draw_networkx_nodes(graph, pos, nodelist=nodes['sensor']['name'],
-                               node_color=nodes['sensor']['color'], node_shape='s', node_size=1000, with_labels=True)
-        nx.draw_networkx_nodes(graph, pos, nodelist=nodes['service']['name'], node_size=1000,
+                               node_color=nodes['sensor']['color'], node_shape='s', node_size=500, with_labels=True)
+        nx.draw_networkx_nodes(graph, pos, nodelist=nodes['service']['name'], node_size=500,
                                node_color=nodes['service']['color'], node_shape='o', with_labels=True)
-        nx.draw_networkx_nodes(graph, pos, nodelist=nodes['actuator']['name'], node_size=1000,
+        nx.draw_networkx_nodes(graph, pos, nodelist=nodes['actuator']['name'], node_size=500,
                                node_color=nodes['actuator']['color'], node_shape='p', with_labels=True)
 
         nx.draw_networkx_edges(graph, pos)
@@ -134,6 +141,7 @@ class ConnectionManager:
 
     def test_fill(self, n):
         import random
+        edges = n*2
 
         types = ['service', 'sensor', 'actuator']
         data=['private', 'public']
@@ -150,10 +158,10 @@ class ConnectionManager:
                 impl = 'physical'
             self.add_node(name=str(i).zfill(2), app_type=type, data=data_i, impl=impl)
 
-        for i in range(0, 2*n):
+        for i in range(0, edges):
             flow = list()
             remaining_nodes = self.graph.nodes()
-            length = random.randint(2, 2*n)
+            length = random.randint(2, 5)
             print "length {0}".format(length)
             for j in range(0, length):
                 if j==0:
@@ -196,6 +204,7 @@ class ConnectionManager:
             if nx.degree(self.graph, node) == 0:
                 self.graph.remove_node(node)
                 print 'removed unconnected node' + node
+        self.save_graph('main', self.graph)
 
     @staticmethod
     def get_nodes_by_type(graph, attr_name, app_type, nodes):
@@ -209,10 +218,20 @@ class ConnectionManager:
 
         import scipy.sparse.linalg as linalg
         import scipy.cluster.vq as vq
+        import scipy
         matrix = nx.normalized_laplacian_matrix(self.graph)
-        eig_res = linalg.eigsh(matrix, k)
-        result = vq.kmeans2(vq.whiten(eig_res[1]), k)[1]
+        eig_res = linalg.eigsh(matrix, len(self.graph.nodes())-1)[1]
+
+        eig_res = scipy.delete(eig_res, scipy.s_[k+1:], 1)
+        eig_res = scipy.delete(eig_res, 0, 1)
+
+        norm = scipy.sqrt(eig_res*eig_res).sum(axis=1)
+        eig_res = eig_res/norm.reshape(len(self.graph.nodes()),1)
+
+        result = vq.kmeans2(eig_res, k, iter=100)[1]
+        print result
         return result
+
 
 
 
