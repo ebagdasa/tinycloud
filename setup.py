@@ -12,7 +12,7 @@ setup(
         'redis',
         'networkx',
         'scipy',
-        'docker-py'
+        'fabric'
       ],
     classifiers=[
     'Development Status :: 3 - Alpha',
