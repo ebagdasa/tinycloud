@@ -18,6 +18,7 @@ class ConnectionManager:
         self.graph = nx.Graph()
         self.flows = dict()
         self.set_connection()
+        self.nodes = dict()
 
     def set_connection(self, node=None, port=None):
         self.__node__ = node or MASTER_NODE
@@ -80,11 +81,28 @@ class ConnectionManager:
         self.save_graph(name, flow)
         self.merge_graphs(flow)
 
-    def add_node(self, name, app_type, data, impl='virtual'):
+    def add_new_app(self, name, app_type, data, impl='virtual'):
         self.graph.add_node(name[0:2], full_name=name, type=app_type, data=data, impl=impl,
                             node_shape=type_shape[app_type], node_color=data_color[data])
         print 'Added new node: {0}'.format(name)
         self.save_graph('main', self.graph)
+
+    def add_new_node(self, node):
+        self.nodes[node.name] = node
+        self.save_nodes()
+
+    def save_nodes(self):
+        
+        self.conn.set('nodes', json.dumps([node.__dict__ for node in self.nodes.itervalues()]))
+    
+    def get_nodes(self):
+        from tinycloud.node import Node
+        
+        nodes_json = json.loads(self.conn.get('nodes'))
+        for node in nodes_json:
+            new_node = Node(name=node['name'], ip=node['ip'], port=node['port'],
+                            user=node['user'], pwd=node['pwd'], virt_type=node['virt_type'])
+            self.nodes[node['name']] = new_node
 
     def draw_graph(self, name=None, graph=None):
         if name:
@@ -156,7 +174,7 @@ class ConnectionManager:
                 impl = random.choice(impls)
             else:
                 impl = 'physical'
-            self.add_node(name=str(i).zfill(2), app_type=type, data=data_i, impl=impl)
+            self.add_new_app(name=str(i).zfill(2), app_type=type, data=data_i, impl=impl)
 
         for i in range(0, edges):
             flow = list()

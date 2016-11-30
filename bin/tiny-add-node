@@ -1,5 +1,7 @@
 #!/usr/bin/env python
-from tinycloud.env import MASTER_NODE, Environment
+from tinycloud.env import ConnectionManager
+from tinycloud.node import Node
+
 
 
 def parse_args():
@@ -8,6 +10,9 @@ def parse_args():
     parser = argparse.ArgumentParser(description='TinyCloud manager module')
     parser.add_argument('--name', '-n', required=True)
     parser.add_argument('--ip', required=True)
+    parser.add_argument('--port', required=True)
+    parser.add_argument('--user', required=True)
+    parser.add_argument('--pwd', required=True)
     parser.add_argument('--virt_type', '-vt', required=True)
     # parser.add_argument('')
 
@@ -16,7 +21,10 @@ def parse_args():
 
 def main():
     args = parse_args()
-    print MASTER_NODE
+    node = Node(name=args.name, ip=args.ip, port=args.port, user=args.user, pwd=args.pwd, virt_type=args.virt_type)
+    c = ConnectionManager()
+    c.add_new_node(node)
+
 
     output = 'Nothing to return'
     print(args)
