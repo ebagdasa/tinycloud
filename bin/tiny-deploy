@@ -11,14 +11,13 @@ ramdisk = "/media/mmcblk0p1/boot/initramfs-grsec"
 cmdline = "console=hvc0"
 memory = 128
 vif = ["mac=06:ac:b4:93:fc:0{mac},bridge=br0"]
-disk = ["vdev=xvda,format=raw,target=/dev/cub/alpine-disk_{name}"]
+disk = ["vdev=xvda,format=raw,target=/dev/cub/alpine-disk_{name}_"]
 """
 
 def parse_args():
     import argparse
 
     parser = argparse.ArgumentParser(description='TinyCloud manager module')
-
 
     return parser.parse_args()
 
@@ -42,7 +41,7 @@ def main():
                     print 'xen'
                     run('rm -rf /root/file_{0}.cfg || '.format(app), warn_only=True)
                     append('file_{0}.cfg'.format(app), xen.format(name=app,mac=index))
-                    run('./alp.sh {0}'.format(app))
+                    run('./alp.sh {0}_'.format(app))
                     run('xl create file_{0}.cfg'.format(app))
 
 
