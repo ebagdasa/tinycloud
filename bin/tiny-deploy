@@ -2,7 +2,17 @@
 from tinycloud.env import ConnectionManager
 from tinycloud.server import Server
 from fabric.api import *
+from fabric.contrib.files import append
 
+xen = """
+name = "alpine_{name}"
+kernel = "/media/mmcblk0p1/boot/vmlinuz"
+ramdisk = "/media/mmcblk0p1/boot/initramfs-grsec"
+cmdline = "console=hvc0"
+memory = 128
+vif = ["mac=06:ac:b4:93:fc:0{mac},bridge=br0"]
+disk = ["vdev=xvda,format=raw,target=/dev/cub/alpine-disk_{name}"]
+"""
 
 def parse_args():
     import argparse
@@ -16,14 +26,24 @@ def parse_args():
 def main():
     args = parse_args()
     c = ConnectionManager()
+    if not c.servers[0].apps:
+        print 'Planning apps'
+        c.plan_apps()
     for server in c.servers:
         for app in server.apps:
-            port = '3000{0}'.format(c.graph.nodes().index(app))
+            index = c.graph.nodes().index(app)
+            port = '3000{0}'.format(index)
             with settings(host_string='{0}@{1}:{2}'.format(server.user, server.ip, server.port), password=server.pwd):
                 run('echo "{0}" >> x'.format(app))
                 if server.virt_type == 'virtual':
                     print 'starting docker container'
                     run('docker run -d --name dock-{name} -p {port}:{port} iperf:test {port}'.format(name=app, port=port))
+                elif server.virt_type == 'xen':
+                    print 'xen'
+                    run('rm -rf /root/file_{0}.cfg || '.format(app), warn_only=True)
+                    append('file_{0}.cfg'.format(app), xen.format(name=app,mac=index))
+                    run('./alp.sh {0}'.format(app))
+                    run('xl create file_{0}.cfg'.format(app))
 
 
 if __name__ == '__main__':

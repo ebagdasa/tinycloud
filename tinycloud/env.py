@@ -48,7 +48,11 @@ class ConnectionManager:
     def get_graph(self, name):
 
         result = self.conn.get(name)
-        graph = json_graph.adjacency_graph(json.loads(result))
+        print result
+        if result is None:
+            graph = nx.Graph()
+        else:
+            graph = json_graph.adjacency_graph(json.loads(result))
         print graph.edges()
         if name == 'main':
             self.graph = graph
@@ -97,7 +101,7 @@ class ConnectionManager:
 
     def add_new_server(self, node):
 
-        self.servers[node.name] = node
+        self.servers.append(node)
         self.save_servers()
 
     def save_servers(self):
@@ -287,12 +291,9 @@ class ConnectionManager:
         return list_nodes
 
     def plan_apps(self):
-        area = 6  # len(self.nodes)
+        area = len(self.servers)
         clusters = self.eigens(area)
         self.save_servers()
-
-
-
 
     def eigens(self, k):
 

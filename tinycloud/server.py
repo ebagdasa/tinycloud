@@ -6,7 +6,7 @@ from tinycloud.env import ConnectionManager
 
 class Server(JSONEncoder):
 
-    def __init__(self, name, ip, port, user, pwd, capacity, virt_type='virtual'):
+    def __init__(self, name, ip, port, user, pwd, capacity, virt_type='docker'):
         super(Server, self).__init__()
         self.name = name
         self.ip = ip
