@@ -5,9 +5,11 @@ import networkx as nx
 from networkx.readwrite import json_graph
 import json
 import matplotlib.pyplot as plt
+import knapsack
+import math
 
-type_shape={'service': 'o', 'sensor':'s', 'actuator': 'p'}
-data_color={'private': 'b', 'public':'g'}
+type_shape={'service': 'o', 'sensor': 's', 'actuator': 'p'}
+data_color={'private': 'b', 'public': 'g'}
 
 
 class ConnectionManager:
@@ -17,8 +19,10 @@ class ConnectionManager:
         self.conn = None
         self.graph = nx.Graph()
         self.flows = dict()
-        self.set_connection()
         self.nodes = dict()
+
+        self.set_connection()
+        self.get_nodes()
 
     def set_connection(self, node=None, port=None):
         self.__node__ = node or MASTER_NODE
@@ -88,6 +92,7 @@ class ConnectionManager:
         self.save_graph('main', self.graph)
 
     def add_new_node(self, node):
+
         self.nodes[node.name] = node
         self.save_nodes()
 
@@ -110,21 +115,30 @@ class ConnectionManager:
         labels = nx.get_edge_attributes(graph, 'weight')
         plt.clf()
         pos = {}
-        area = 9
+        area = 6 #len(self.nodes)
         pos_set = [[] for i in range(area)]
         clusters = self.eigens(area)
+        # clusters = [0]*len(self.graph.nodes())
         for i in range(0, len(self.graph.nodes())):
             pos_set[clusters[i]].append(self.graph.nodes()[i])
 
-        pos.update(nx.circular_layout(pos_set[0], scale=5, center=[-20, -20]))
-        pos.update(nx.circular_layout(pos_set[1], scale=5, center=[-20,  20]))
-        pos.update(nx.circular_layout(pos_set[2], scale=5, center=[ 20,  20]))
-        pos.update(nx.circular_layout(pos_set[3], scale=5, center=[ 20, -20]))
-        pos.update(nx.circular_layout(pos_set[4], scale=5, center=[ 0,  20]))
-        pos.update(nx.circular_layout(pos_set[5], scale=5, center=[ 0, 0]))
-        pos.update(nx.circular_layout(pos_set[6], scale=5, center=[ -20, 0]))
-        pos.update(nx.circular_layout(pos_set[7], scale=5, center=[ 20, 0]))
-        pos.update(nx.circular_layout(pos_set[8], scale=5, center=[ 0, -20]))
+        for i in range(0, area):
+            angle = (i*1.0 / area) * (math.pi * 2.0)
+            print angle
+            cos = 20*math.cos(angle)
+            sin = 20*math.sin(angle)
+            pos.update(nx.circular_layout(pos_set[i], scale=5, center=[cos, sin]))
+
+
+        # pos.update(nx.circular_layout(pos_set[0], scale=5, center=[-20, -20]))
+        # pos.update(nx.circular_layout(pos_set[1], scale=5, center=[-20,  20]))
+        # pos.update(nx.circular_layout(pos_set[2], scale=5, center=[ 20,  20]))
+        # pos.update(nx.circular_layout(pos_set[3], scale=5, center=[ 20, -20]))
+        # pos.update(nx.circular_layout(pos_set[4], scale=5, center=[ 0,  20]))
+        # pos.update(nx.circular_layout(pos_set[5], scale=5, center=[ 0, 0]))
+        # pos.update(nx.circular_layout(pos_set[6], scale=5, center=[ -20, 0]))
+        # pos.update(nx.circular_layout(pos_set[7], scale=5, center=[ 20, 0]))
+        # pos.update(nx.circular_layout(pos_set[8], scale=5, center=[ 0, -20]))
 
 
 
@@ -149,7 +163,7 @@ class ConnectionManager:
                  'actuator': {'name':[], 'color':[]},
                  'service':{'name':[], 'color':[]}}
         for name, type in types.iteritems():
-            if nx.degree(graph, name) > 0:
+            if nx.degree(graph, name) >= 0:
                 nodes[type]['name'].append(name)
                 nodes[type]['color'].append(data_color[data[name]])
         return nodes
@@ -159,7 +173,7 @@ class ConnectionManager:
 
     def test_fill(self, n):
         import random
-        edges = n*2
+        edges = n
 
         types = ['service', 'sensor', 'actuator']
         data=['private', 'public']
@@ -237,6 +251,7 @@ class ConnectionManager:
         import scipy.sparse.linalg as linalg
         import scipy.cluster.vq as vq
         import scipy
+        print self.graph.nodes()
         matrix = nx.normalized_laplacian_matrix(self.graph)
         eig_res = linalg.eigsh(matrix, len(self.graph.nodes())-1)[1]
 
@@ -248,7 +263,39 @@ class ConnectionManager:
 
         result = vq.kmeans2(eig_res, k, iter=100)[1]
         print result
+        result = self.knap(k, result)
+        print result
+        print self.graph.nodes()
         return result
+
+    def knap(self, servers, spectr):
+        result = [-1]*len(spectr)
+        length = len(spectr)
+
+        spectr = [x+1 for x in spectr]
+        # size = [nx.degree(self.graph, node) for node in self.graph.nodes()]
+        size = [1]*length
+        capacity = sum(size) / servers
+        print "capacity: " + str(capacity)
+        weight = spectr
+        print "size"
+        print size
+
+        for i in range(0, servers):
+            print "weight"
+            print weight
+            res = knapsack.knapsack(size, weight).solve(capacity)
+            print res
+            res = res[1]
+
+            for j in res:
+                # print "node {0} for id {1}".format(self.graph.nodes()[j], j)
+                result[j] = i
+                weight[j] = 0
+        print "result"
+        print result
+        return result
+
 
 
 

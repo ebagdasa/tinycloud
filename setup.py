@@ -6,13 +6,14 @@ setup(
     packages=['tinycloud',],
     license='MIT License',
     long_description=open('README.md').read(),
-    scripts=['bin/tiny-add-node', 'bin/tiny-add-app', 'bin/tiny-delete-app', 'bin/tiny-delete-node', 'bin/tiny-add-flow'],
+    scripts=['bin/tiny-add-node', 'bin/tiny-add-app', 'bin/tiny-delete-app',
+             'bin/tiny-delete-node', 'bin/tiny-add-flow', 'bin/tiny-deploy'],
     install_requires=[
         'ansible',
         'redis',
         'networkx',
         'scipy',
-        'fabric'
+        'fabric', 'knapsack'
       ],
     classifiers=[
     'Development Status :: 3 - Alpha',

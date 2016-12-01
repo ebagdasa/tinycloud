@@ -20,6 +20,7 @@ def parse_args():
 def main():
     args = parse_args()
     conn = ConnectionManager()
+    conn.graph = conn.get_graph('main')
     conn.add_new_app(name=args.name, app_type=args.type, data=args.data)
 
     output = 'Nothing to return'
