@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import knapsack
 import math
 
+
 type_shape={'service': 'o', 'sensor': 's', 'actuator': 'p'}
 data_color={'private': 'b', 'public': 'g'}
 
@@ -19,10 +20,12 @@ class ConnectionManager:
         self.conn = None
         self.graph = nx.Graph()
         self.flows = dict()
-        self.nodes = dict()
+        self.servers = list()
 
         self.set_connection()
-        self.get_nodes()
+        self.get_servers()
+        self.graph = self.get_graph('main')
+        self.get_flows()
 
     def set_connection(self, node=None, port=None):
         self.__node__ = node or MASTER_NODE
@@ -82,32 +85,60 @@ class ConnectionManager:
 
         self.flows[name] = flow
         print "graph {0} created: {1}".format(name, json_graph.adjacency_data(flow))
+        self.save_flows()
         self.save_graph(name, flow)
         self.merge_graphs(flow)
 
-    def add_new_app(self, name, app_type, data, impl='virtual'):
-        self.graph.add_node(name[0:2], full_name=name, type=app_type, data=data, impl=impl,
+    def add_new_app(self, name, app_type, data, size=1, impl='virtual'):
+        self.graph.add_node(name[0:2], full_name=name, type=app_type, data=data, impl=impl, size=size,
                             node_shape=type_shape[app_type], node_color=data_color[data])
         print 'Added new node: {0}'.format(name)
         self.save_graph('main', self.graph)
 
-    def add_new_node(self, node):
+    def add_new_server(self, node):
 
-        self.nodes[node.name] = node
-        self.save_nodes()
+        self.servers[node.name] = node
+        self.save_servers()
 
-    def save_nodes(self):
+    def save_servers(self):
         
-        self.conn.set('nodes', json.dumps([node.__dict__ for node in self.nodes.itervalues()]))
+        self.conn.set('servers', json.dumps([server.__dict__ for server in self.servers]))
+
+    def save_flows(self):
+        res = dict()
+        for name, flow in self.flows.iteritems():
+            res[name] = json_graph.adjacency_data(flow)
+        self.conn.set('flows', json.dumps(res))
+
+
+    def get_flows(self):
+        res = self.conn.get('flows')
+        if res is None:
+            return
+        res = json.loads(res)
+        for name, flow in res.iteritems():
+            self.flows[name] = json_graph.adjacency_graph(flow, directed=True)
+
+    def clear(self):
+        self.graph = nx.Graph()
+        self.flows = dict()
+        self.save_flows()
+        self.save_graph('main', self.graph)
+        for x in self.servers:
+            x.apps = list()
     
-    def get_nodes(self):
-        from tinycloud.node import Node
-        
-        nodes_json = json.loads(self.conn.get('nodes'))
-        for node in nodes_json:
-            new_node = Node(name=node['name'], ip=node['ip'], port=node['port'],
-                            user=node['user'], pwd=node['pwd'], virt_type=node['virt_type'])
-            self.nodes[node['name']] = new_node
+    def get_servers(self):
+        from tinycloud.server import Server
+
+        res = self.conn.get('servers')
+        if res is None:
+            return
+        servers_json = json.loads(res)
+        for server in servers_json:
+            new_server = Server(name=server['name'], ip=server['ip'], port=server['port'],
+                              user=server['user'], pwd=server['pwd'], capacity=server['capacity'], virt_type=server['virt_type'])
+            new_server.apps = server['apps']
+            self.servers.append(new_server)
 
     def draw_graph(self, name=None, graph=None):
         if name:
@@ -115,19 +146,19 @@ class ConnectionManager:
         labels = nx.get_edge_attributes(graph, 'weight')
         plt.clf()
         pos = {}
-        area = 6 #len(self.nodes)
-        pos_set = [[] for i in range(area)]
-        clusters = self.eigens(area)
-        # clusters = [0]*len(self.graph.nodes())
-        for i in range(0, len(self.graph.nodes())):
-            pos_set[clusters[i]].append(self.graph.nodes()[i])
-
+        # area = 6 #len(self.nodes)
+        # pos_set = [[] for i in range(area)]
+        # clusters = self.eigens(area)
+        # # clusters = [0]*len(self.graph.nodes())
+        # for i in range(0, len(self.graph.nodes())):
+        #     pos_set[clusters[i]].append(self.graph.nodes()[i])
+        area = len(self.servers)
         for i in range(0, area):
             angle = (i*1.0 / area) * (math.pi * 2.0)
             print angle
             cos = 20*math.cos(angle)
             sin = 20*math.sin(angle)
-            pos.update(nx.circular_layout(pos_set[i], scale=5, center=[cos, sin]))
+            pos.update(nx.circular_layout(self.servers[i].apps, scale=5, center=[cos, sin]))
 
 
         # pos.update(nx.circular_layout(pos_set[0], scale=5, center=[-20, -20]))
@@ -173,7 +204,16 @@ class ConnectionManager:
 
     def test_fill(self, n):
         import random
+        from tinycloud.server import Server
+
         edges = n
+        # self.servers = list()
+        # for x in range(1,6):
+        #     server = Server(random.random(), random.random(),
+        #                        random.random(),random.random(),
+        #                        random.random(), 4)
+        #     self.servers.append(server)
+        # self.save_servers()
 
         types = ['service', 'sensor', 'actuator']
         data=['private', 'public']
@@ -232,10 +272,10 @@ class ConnectionManager:
                 # if self.graph.node[node]['impl']=='physical':
                 #     break
             self.add_flow(i, [flow])
-        for node in self.graph.nodes():
-            if nx.degree(self.graph, node) == 0:
-                self.graph.remove_node(node)
-                print 'removed unconnected node' + node
+        # for node in self.graph.nodes():
+        #     if nx.degree(self.graph, node) == 0:
+        #         self.graph.remove_node(node)
+        #         print 'removed unconnected node' + node
         self.save_graph('main', self.graph)
 
     @staticmethod
@@ -245,6 +285,14 @@ class ConnectionManager:
             if value == app_type and node in nodes:
                 list_nodes.append(node)
         return list_nodes
+
+    def plan_apps(self):
+        area = 6  # len(self.nodes)
+        clusters = self.eigens(area)
+        self.save_servers()
+
+
+
 
     def eigens(self, k):
 
@@ -266,6 +314,10 @@ class ConnectionManager:
         result = self.knap(k, result)
         print result
         print self.graph.nodes()
+        for place in range(0, len(result)):
+            app = self.graph.nodes()[place]
+            self.servers[result[place]].add_app(app, self.graph.node[app]['size'])
+
         return result
 
     def knap(self, servers, spectr):
@@ -274,17 +326,17 @@ class ConnectionManager:
 
         spectr = [x+1 for x in spectr]
         # size = [nx.degree(self.graph, node) for node in self.graph.nodes()]
-        size = [1]*length
-        capacity = sum(size) / servers
+        size = [self.graph.node[x]['size'] for x in self.graph.nodes()]
+        capacity = [x.capacity for x in self.servers]
         print "capacity: " + str(capacity)
         weight = spectr
         print "size"
         print size
 
-        for i in range(0, servers):
+        for i in range(0, len(self.servers)):
             print "weight"
             print weight
-            res = knapsack.knapsack(size, weight).solve(capacity)
+            res = knapsack.knapsack(size, weight).solve(capacity[i])
             print res
             res = res[1]
 
@@ -296,12 +348,12 @@ class ConnectionManager:
         print result
         return result
 
-
-
-
-
-
-
+    def get_remaining_apps(self):
+        existing_nodes = list()
+        for server in self.servers:
+            existing_nodes.extend(server.apps)
+        new_apps = [x for x in self.graph.nodes() if x not in existing_nodes]
+        return new_apps
 
 
 

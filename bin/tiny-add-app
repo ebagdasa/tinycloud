@@ -10,7 +10,7 @@ def parse_args():
     parser.add_argument('-n', '--name', required=True)
     parser.add_argument('-t', '--type', choices=['sensor', 'actuator', 'service'], required=True, help='Type of application')
     parser.add_argument('--data', choices=['private', 'public'], default='private')
-    parser.add_argument('-m', help='memory', required=False)
+    parser.add_argument('--size', help='Size', required=False)
     parser.add_argument('--node', required=False)
 
 
@@ -21,7 +21,7 @@ def main():
     args = parse_args()
     conn = ConnectionManager()
     conn.graph = conn.get_graph('main')
-    conn.add_new_app(name=args.name, app_type=args.type, data=args.data)
+    conn.add_new_app(name=args.name, app_type=args.type, data=args.data, size=args.size)
 
     output = 'Nothing to return'
     print(args)

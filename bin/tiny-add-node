@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from tinycloud.env import ConnectionManager
-from tinycloud.node import Node
+from tinycloud.server import Server
 
 
 
@@ -13,6 +13,7 @@ def parse_args():
     parser.add_argument('--port', required=True)
     parser.add_argument('--user', required=True)
     parser.add_argument('--pwd', required=True)
+    parser.add_argument('--capacity', required=True)
     parser.add_argument('--virt_type', '-vt', required=True)
     # parser.add_argument('')
 
@@ -21,9 +22,10 @@ def parse_args():
 
 def main():
     args = parse_args()
-    node = Node(name=args.name, ip=args.ip, port=args.port, user=args.user, pwd=args.pwd, virt_type=args.virt_type)
+    node = Server(name=args.name, ip=args.ip, port=args.port, user=args.user, pwd=args.pwd, capacity=args.capacity,
+                  virt_type=args.virt_type)
     c = ConnectionManager()
-    c.add_new_node(node)
+    c.add_new_server(node)
 
     print "Added new node: {0}".format(args.name)
 

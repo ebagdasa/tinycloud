@@ -1,31 +1,29 @@
 #!/usr/bin/env python
 from tinycloud.env import ConnectionManager
-from tinycloud.node import Node
-
+from tinycloud.server import Server
+from fabric.api import *
 
 
 def parse_args():
     import argparse
 
     parser = argparse.ArgumentParser(description='TinyCloud manager module')
-    parser.add_argument('--name', '-n', required=True)
-    parser.add_argument('--ip', required=True)
-    parser.add_argument('--port', required=True)
-    parser.add_argument('--user', required=True)
-    parser.add_argument('--pwd', required=True)
-    parser.add_argument('--virt_type', '-vt', required=True)
-    # parser.add_argument('')
+
 
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
-    node = Node(name=args.name, ip=args.ip, port=args.port, user=args.user, pwd=args.pwd, virt_type=args.virt_type)
     c = ConnectionManager()
-    c.add_new_node(node)
-
-    print "Added new node: {0}".format(args.name)
+    for server in c.servers:
+        for app in server.apps:
+            port = '3000{0}'.format(c.graph.nodes().index(app))
+            with settings(host_string='{0}@{1}:{2}'.format(server.user, server.ip, server.port), password=server.pwd):
+                run('echo "{0}" >> x'.format(app))
+                if server.virt_type == 'virtual':
+                    print 'starting docker container'
+                    run('docker run -d --name dock-{name} -p {port}:{port} iperf:test {port}'.format(name=app, port=port))
 
 
 if __name__ == '__main__':
