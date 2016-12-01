@@ -2,12 +2,12 @@ from distutils.core import setup
 
 setup(
     name='TinyCloud',
-    version='0.1dev',
+    version='0.3dev',
     packages=['tinycloud',],
     license='MIT License',
     long_description=open('README.md').read(),
-    scripts=['bin/tiny-add-node', 'bin/tiny-add-app', 'bin/tiny-delete-app', 'bin/tiny-draw',
-             'bin/tiny-delete-node', 'bin/tiny-add-flow', 'bin/tiny-deploy'],
+    scripts=['bin/tiny-add-node', 'bin/tiny-add-app', 'bin/tiny-delete-app', 'bin/tiny-draw', 'bin/tiny-get-apps',
+             'bin/tiny-get-servers', 'bin/tiny-delete-node', 'bin/tiny-add-flow', 'bin/tiny-deploy'],
     install_requires=[
         'ansible',
         'redis',
