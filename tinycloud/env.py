@@ -355,6 +355,3 @@ class ConnectionManager:
             existing_nodes.extend(server.apps)
         new_apps = [x for x in self.graph.nodes() if x not in existing_nodes]
         return new_apps
-
-
-
