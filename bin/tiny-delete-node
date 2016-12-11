@@ -4,10 +4,10 @@
 def parse_args():
     import argparse
 
-    parser = argparse.ArgumentParser(description='TinyCloud manager module')
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('--name', '-n')
-    group.add_argument('--ip')
+    parser = argparse.ArgumentParser(description='The method is not implemented yet')
+    # group = parser.add_mutually_exclusive_group(required=True)
+    # group.add_argument('--name', '-n')
+    # group.add_argument('--ip')
     # parser.add_argument('')
 
     return parser.parse_args()
@@ -16,8 +16,8 @@ def parse_args():
 def main():
     args = parse_args()
 
-    output = 'Nothing to return'
-    print(args)
+    output = 'The method is not implemented yet'
+    print(output)
 
 
 if __name__ == '__main__':
